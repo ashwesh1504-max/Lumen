@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LUMEN — Your Healthcare Access Navigator</title>
+  <meta name="description" content="Lumen is your personal guide, connecting you to facilities, simplifying appointments, keeping track of your steps.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            lumen: {
+              dark: '#1a1a1a',     // Color 1: Dark Gray / Black
+              blue: '#1e78eb',     // Color 2: Vibrant Blue
+              green: '#4cb80a',    // Color 3: Green
+              gray: '#909090',     // Color 4: Medium Gray
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"Space Grotesk"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #1a1a1a;
+      color: #ffffff;
+      overflow-x: hidden;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      scrollbar-width: thin;
+      scrollbar-color: #909090 #1a1a1a;
+    }
+
+    body::-webkit-scrollbar {
+      width: 8px;
+    }
+    body::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    body::-webkit-scrollbar-thumb {
+      background: #909090;
+      border-radius: 4px;
+    }
+    body::-webkit-scrollbar-thumb:hover {
+      background: #1e78eb;
+    }
+
+    /* Fixed Canvas for Scroll Animation */
+    #animation-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Subtle loading indicator at top */
+    #loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      z-index: 100;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+    #loader-progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #1e78eb, #4cb80a);
+      transition: width 0.15s ease-out;
+    }
+    #loader.fade-out {
+      opacity: 0;
+    }
+
+    /* Content overlay layers above canvas */
+    .content-layer {
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Glassmorphism Card Style with Palette Dark #1a1a1a */
+    .glass-card {
+      background: rgba(26, 26, 26, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(144, 144, 144, 0.22);
+      border-radius: 1rem;
+      transition: all 0.25s ease;
+    }
+    .glass-card:hover {
+      border-color: rgba(30, 120, 235, 0.45);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+    }
+
+    .glass-pill {
+      background: rgba(26, 26, 26, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(144, 144, 144, 0.25);
+    }
+
+    /* Reference Image Backdrop for Transition/Lower Sections */
+    .reference-bg-section {
+      position: relative;
+      background: linear-gradient(180deg, rgba(26, 26, 26, 0.82) 0%, rgba(26, 26, 26, 0.94) 100%),
+                  url('/assets/reference-bg.jpg') center/cover no-repeat fixed;
+    }
+
+    /* Smooth pulse glow */
+    @keyframes subtlePulse {
+      0%, 100% { opacity: 0.8; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.02); }
+    }
+    .pulse-glow {
+      animation: subtlePulse 3s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="selection:bg-lumen-blue/30 selection:text-white">
+
+  <!-- Top Progress Bar -->
+  <div id="loader">
+    <div id="loader-progress"></div>
+  </div>
+
+  <!-- FIXED CANVAS FOR SMOOTH SCROLL ANIMATION -->
+  <canvas id="animation-canvas"></canvas>
+
+  <!-- ============================================================== -->
+  <!-- PAGE CONTENT (Scrollable on top of the 300-frame animation)     -->
+  <!-- ============================================================== -->
+  <div class="content-layer">
+
+    <!-- TOP NAVIGATION HEADER -->
+    <header class="fixed top-0 left-0 right-0 z-50 px-6 sm:px-10 py-4 transition-all duration-300" id="navbar">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
+        
+        <!-- Logo -->
+        <a href="#hero" class="text-white tracking-[0.25em] text-lg font-bold font-mono uppercase flex items-center gap-2 hover:text-lumen-blue transition-colors">
+          <span class="w-2.5 h-2.5 rounded-full bg-lumen-green inline-block pulse-glow"></span>
+          <span>LUMEN</span>
+        </a>
+
+        <!-- Central Floating Menu -->
+        <nav class="hidden md:flex items-center">
+          <div class="glass-pill px-6 py-2 rounded-full flex items-center gap-6 shadow-xl">
+            <a href="#hero" class="text-xs sm:text-sm font-medium text-neutral-300 hover:text-white transition-colors">Home</a>
+            <span class="text-neutral-600 text-xs">•</span>
+            <a href="#overview" class="text-xs sm:text-sm font-medium text-neutral-300 hover:text-white transition-colors">About</a>
+            <span class="text-neutral-600 text-xs">•</span>
+            <a href="#capabilities" class="text-xs sm:text-sm font-medium text-neutral-300 hover:text-white transition-colors">How it Works</a>
+            <span class="text-neutral-600 text-xs">•</span>
+            <a href="#navigator" class="text-xs sm:text-sm font-medium text-lumen-blue hover:text-white transition-colors">Navigator</a>
+            <span class="text-neutral-600 text-xs">•</span>
+            <a href="#capabilities" class="text-xs sm:text-sm font-medium text-lumen-green hover:text-white transition-colors">Capabilities</a>
+            <span class="text-neutral-600 text-xs">•</span>
+            <a href="#faqs" class="text-xs sm:text-sm font-medium text-neutral-300 hover:text-white transition-colors">FAQs</a>
+          </div>
+        </nav>
+
+        <!-- Right Action Items -->
+        <div class="flex items-center gap-4">
+          <!-- Language Selector -->
+          <div class="relative">
+            <select id="lang-select" class="glass-pill text-xs text-neutral-300 px-3 py-1.5 rounded-full focus:outline-none border border-lumen-gray/30 cursor-pointer">
+              <option value="EN">EN (US)</option>
+              <option value="ES">ES (Español)</option>
+              <option value="FR">FR (Français)</option>
+              <option value="DE">DE (Deutsch)</option>
+            </select>
+          </div>
+
+          <!-- Launch Navigator CTA -->
+          <button onclick="openNavigatorModal('facilities')" class="hidden sm:inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-lumen-blue hover:bg-blue-600 text-white text-xs font-semibold shadow-lg shadow-lumen-blue/30 transition-all transform hover:scale-105">
+            <i data-lucide="compass" class="w-3.5 h-3.5"></i>
+            <span>Launch Navigator</span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- SECTION 1: HERO BANNER -->
+    <section id="hero" class="min-h-screen flex flex-col justify-center items-center text-center px-6 pt-24 pb-16 relative">
+      <div class="max-w-4xl mx-auto">
+        
+        <!-- Live System Status Badge -->
+        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full glass-pill text-xs text-neutral-300 mb-8 border border-lumen-gray/30">
+          <span class="w-2 h-2 rounded-full bg-lumen-green animate-ping"></span>
+          <span class="text-lumen-green font-semibold">SQLite Online</span>
+          <span class="text-neutral-500">•</span>
+          <span class="text-lumen-gray">Healthcare Access Navigator</span>
+        </div>
+
+        <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
+          YOUR HEALTHCARE <br>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-white via-lumen-blue to-lumen-green">ACCESS NAVIGATOR</span>
+        </h1>
+
+        <p class="text-base sm:text-xl text-neutral-300 max-w-2xl mx-auto mb-10 leading-relaxed font-light">
+          Lumen is your personal guide: connecting you to in-network facilities, simplifying appointment queues, keeping track of required documents, and adapting to live hospital changes.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-wrap items-center justify-center gap-4 mb-16">
+          <button onclick="openNavigatorModal('facilities')" class="px-7 py-3 rounded-full bg-lumen-blue hover:bg-blue-600 text-white font-semibold text-sm flex items-center gap-2 shadow-xl shadow-lumen-blue/30 transition-all transform hover:scale-105">
+            <i data-lucide="search" class="w-4 h-4"></i>
+            <span>Explore Facilities</span>
+          </button>
+          <a href="#capabilities" class="px-7 py-3 rounded-full glass-pill hover:bg-white/10 text-neutral-200 font-semibold text-sm flex items-center gap-2 border border-lumen-green/50 hover:border-lumen-green transition-all">
+            <i data-lucide="sparkles" class="w-4 h-4 text-lumen-green"></i>
+            <span>Explore Capabilities</span>
+          </a>
+        </div>
+
+        <!-- Live Dashboard Metrics Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 max-w-4xl mx-auto text-left">
+          <div class="glass-card p-4">
+            <p class="text-xs text-lumen-gray uppercase tracking-wider mb-1">Facilities</p>
+            <p class="text-2xl font-bold text-white" id="stat-facilities">6</p>
+            <p class="text-[10px] text-lumen-green flex items-center gap-1 mt-1">
+              <i data-lucide="check" class="w-3 h-3"></i> Verified Geocoded
+            </p>
+          </div>
+          <div class="glass-card p-4">
+            <p class="text-xs text-lumen-gray uppercase tracking-wider mb-1">Available Slots</p>
+            <p class="text-2xl font-bold text-lumen-blue" id="stat-slots">14</p>
+            <p class="text-[10px] text-neutral-400 mt-1">Multi-Specialty</p>
+          </div>
+          <div class="glass-card p-4">
+            <p class="text-xs text-lumen-gray uppercase tracking-wider mb-1">Pending Docs</p>
+            <p class="text-2xl font-bold text-amber-400" id="stat-docs">4</p>
+            <p class="text-[10px] text-neutral-400 mt-1">Checklist Items</p>
+          </div>
+          <div class="glass-card p-4">
+            <p class="text-xs text-lumen-gray uppercase tracking-wider mb-1">Active Reminders</p>
+            <p class="text-2xl font-bold text-white" id="stat-reminders">3</p>
+            <p class="text-[10px] text-lumen-green mt-1">Next Steps Ready</p>
+          </div>
+          <div class="glass-card p-4 col-span-2 sm:col-span-1">
+            <p class="text-xs text-lumen-gray uppercase tracking-wider mb-1">Surge Buffer</p>
+            <p class="text-2xl font-bold text-lumen-green" id="stat-surge">100%</p>
+            <p class="text-[10px] text-neutral-400 mt-1">Adaptive Triage</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Scroll indicator -->
+      <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 opacity-70">
+        <span class="text-[10px] tracking-widest uppercase font-mono text-neutral-400">Scroll to Explore</span>
+        <i data-lucide="chevron-down" class="w-4 h-4 text-lumen-blue animate-bounce"></i>
+      </div>
+    </section>
+
+    <!-- SECTION 2: OVERVIEW & 3 HIGHLIGHT CARDS -->
+    <section id="overview" class="py-24 px-6 sm:px-10 max-w-7xl mx-auto">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <p class="text-xs font-mono uppercase tracking-widest text-lumen-blue mb-2">Core Workflow</p>
+        <h2 class="text-3xl sm:text-5xl font-bold text-white mb-4">Navigating Healthcare Made Clear</h2>
+        <p class="text-sm sm:text-base text-lumen-gray leading-relaxed">
+          From discovery to booking, documentation and personalized follow-ups — Lumen bridges the gap between patient needs and hospital systems.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Card 1 -->
+        <div class="glass-card p-8 flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-6">
+              <span class="text-xs font-mono text-lumen-blue font-semibold">01 / EXPLORATION</span>
+              <div class="w-10 h-10 rounded-full bg-lumen-blue/10 flex items-center justify-center text-lumen-blue group-hover:bg-lumen-blue group-hover:text-white transition-colors">
+                <i data-lucide="compass" class="w-5 h-5"></i>
+              </div>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-3">Discover</h3>
+            <p class="text-sm text-neutral-300 mb-6 leading-relaxed">
+              Find healthcare facilities that precisely match your insurance, language, and accessibility requirements.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2 pt-4 border-t border-white/5">
+            <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-neutral-400">Facility matching</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-neutral-400">In-network care</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-neutral-400">Real-time distance</span>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="glass-card p-8 flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-6">
+              <span class="text-xs font-mono text-lumen-green font-semibold">02 / COORDINATION</span>
+              <div class="w-10 h-10 rounded-full bg-lumen-green/10 flex items-center justify-center text-lumen-green group-hover:bg-lumen-green group-hover:text-white transition-colors">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+              </div>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-3">Navigate</h3>
+            <p class="text-sm text-neutral-300 mb-6 leading-relaxed">
+              Simplify appointment queues, referral transfers, and intake document checklists with real-time slot checking.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2 pt-4 border-t border-white/5">
+            <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-neutral-400">One-tap booking</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-neutral-400">Referral transfers</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-neutral-400">Intake checklists</span>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="glass-card p-8 flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-6">
+              <span class="text-xs font-mono text-amber-400 font-semibold">03 / CONTINUITY</span>
+              <div class="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center text-amber-400 group-hover:bg-amber-400 group-hover:text-black transition-colors">
+                <i data-lucide="footprints" class="w-5 h-5"></i>
+              </div>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-3">Stay on track</h3>
+            <p class="text-sm text-neutral-300 mb-6 leading-relaxed">
+              Know your upcoming steps, fasting windows, paratransit rides, and prescription deadlines without missing a beat.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2 pt-4 border-t border-white/5">
+            <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-neutral-400">Care milestones</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-neutral-400">Pre-visit prep</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-neutral-400">Automated alerts</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: IN-PAGE HEALTHCARE ACCESS NAVIGATOR INTERFACE -->
+    <section id="navigator" class="py-20 px-6 sm:px-10 max-w-7xl mx-auto">
+      <div class="glass-card p-6 sm:p-10 border border-lumen-blue/30 shadow-2xl">
+        
+        <!-- Header & Nav Tabs -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-white/10">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-lumen-blue/15 text-lumen-blue text-xs font-mono font-semibold mb-2">
+              <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+              <span>Interactive Navigation Suite</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-white mb-3">Healthcare Access System</h2>
+            <!-- Quick Action CTAs for Available slots and My bookings -->
+            <div class="flex items-center gap-2.5">
+              <button onclick="showAvailableSlots()" class="px-4 py-1.5 rounded-full bg-lumen-blue hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-lumen-blue/20 transition-all cursor-pointer">
+                <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
+                <span>Available slots</span>
+              </button>
+              <button onclick="showMyBookings()" class="px-4 py-1.5 rounded-full bg-lumen-green hover:bg-green-600 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-lumen-green/20 transition-all cursor-pointer">
+                <i data-lucide="bookmark-check" class="w-3.5 h-3.5"></i>
+                <span>My bookings</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Switchable Tabs Bar -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0" id="tab-buttons">
+            <button onclick="switchTab('facilities')" id="tab-btn-facilities" class="tab-btn px-4 py-2 rounded-full text-xs font-mono font-semibold transition-all bg-lumen-blue text-white flex items-center gap-1.5 whitespace-nowrap">
+              <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
+              <span>1. Facilities</span>
+            </button>
+            <button onclick="switchTab('appointments')" id="tab-btn-appointments" class="tab-btn px-4 py-2 rounded-full text-xs font-mono font-medium text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 flex items-center gap-1.5 whitespace-nowrap">
+              <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+              <span>2. Slots & Queue</span>
+            </button>
+            <button onclick="switchTab('documents')" id="tab-btn-documents" class="tab-btn px-4 py-2 rounded-full text-xs font-mono font-medium text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 flex items-center gap-1.5 whitespace-nowrap">
+              <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+              <span>3. Documents</span>
+            </button>
+            <button onclick="switchTab('preferences')" id="tab-btn-preferences" class="tab-btn px-4 py-2 rounded-full text-xs font-mono font-medium text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 flex items-center gap-1.5 whitespace-nowrap">
+              <i data-lucide="accessibility" class="w-3.5 h-3.5"></i>
+              <span>4. Preferences</span>
+            </button>
+            <button onclick="switchTab('reminders')" id="tab-btn-reminders" class="tab-btn px-4 py-2 rounded-full text-xs font-mono font-medium text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 flex items-center gap-1.5 whitespace-nowrap">
+              <i data-lucide="footprints" class="w-3.5 h-3.5"></i>
+              <span>5. Reminders</span>
+            </button>
+            <button onclick="switchTab('guidance')" id="tab-btn-guidance" class="tab-btn px-4 py-2 rounded-full text-xs font-mono font-medium text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 flex items-center gap-1.5 whitespace-nowrap">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>6. Smart Guidance</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT CONTAINER -->
+        <div class="mt-8">
+
+          <!-- TAB 1: FACILITIES -->
+          <div id="tab-content-facilities" class="tab-pane">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+              <div class="relative w-full sm:w-96">
+                <i data-lucide="search" class="w-4 h-4 text-lumen-gray absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="fac-search-input" onkeyup="filterFacilities()" placeholder="Search facility name or address..." class="w-full pl-9 pr-4 py-2 rounded-full bg-white/5 border border-lumen-gray/30 text-xs text-white placeholder-lumen-gray focus:outline-none focus:border-lumen-blue">
+              </div>
+              <div class="flex items-center gap-3 w-full sm:w-auto">
+                <select id="fac-service-filter" onchange="filterFacilities()" class="px-3 py-2 rounded-full bg-white/5 border border-lumen-gray/30 text-xs text-neutral-300 focus:outline-none">
+                  <option value="All">All Specialties</option>
+                  <option value="Cardiology">Cardiology</option>
+                  <option value="Primary Care">Primary Care</option>
+                  <option value="Diagnostic Imaging">Diagnostic Imaging</option>
+                  <option value="Orthopedics">Orthopedics</option>
+                  <option value="Mental Health">Mental Health</option>
+                </select>
+                <button onclick="loadFacilities()" class="p-2 rounded-full bg-white/5 hover:bg-white/10 text-neutral-300" title="Refresh">
+                  <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Facilities Cards Grid -->
+            <div id="facilities-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div class="text-center py-12 col-span-3 text-lumen-gray">Loading healthcare facilities from SQLite...</div>
+            </div>
+          </div>
+
+          <!-- TAB 2: APPOINTMENTS & QUEUE -->
+          <div id="tab-content-appointments" class="tab-pane hidden">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 class="text-lg font-bold text-white">Demonstration Slots & Real-Time Availability</h3>
+                <p class="text-xs text-lumen-gray">Verify slot status before booking. Avoid over-allocation or unavailable specialists.</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="loadAllSlots()" id="slot-filter-all" class="px-3.5 py-1.5 rounded-full bg-lumen-blue text-white text-xs font-semibold transition-all cursor-pointer">
+                  All Slots
+                </button>
+                <button onclick="showAvailableSlots()" id="slot-filter-avail" class="px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-semibold transition-all cursor-pointer">
+                  Available Slots
+                </button>
+                <button onclick="showMyBookings()" id="slot-filter-bookings" class="px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-semibold transition-all cursor-pointer">
+                  My Bookings
+                </button>
+              </div>
+            </div>
+            <div id="slots-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div class="text-center py-12 col-span-3 text-lumen-gray">Loading appointment slots...</div>
+            </div>
+          </div>
+
+          <!-- TAB 3: DOCUMENTS -->
+          <div id="tab-content-documents" class="tab-pane hidden">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-lg font-bold text-white">Referral & Document Checklist</h3>
+                <p class="text-xs text-lumen-gray">Ensure required photo IDs, clinical referrals, and pre-authorizations are completed.</p>
+              </div>
+              <button onclick="promptAddDocument()" class="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Add Checklist Item</span>
+              </button>
+            </div>
+            <div id="documents-list" class="space-y-3">
+              <div class="text-center py-12 text-lumen-gray">Loading documents...</div>
+            </div>
+          </div>
+
+          <!-- TAB 4: PREFERENCES -->
+          <div id="tab-content-preferences" class="tab-pane hidden">
+            <div class="max-w-2xl mx-auto space-y-6">
+              <h3 class="text-lg font-bold text-white">Language & Accessibility Preferences</h3>
+              <p class="text-xs text-lumen-gray">Tailor recommendations to your mobility needs, languages, and carrier network.</p>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-medium text-neutral-300 mb-2">Preferred Languages</label>
+                  <div class="flex flex-wrap gap-2" id="pref-lang-tags">
+                    <span class="px-3 py-1 rounded-full bg-lumen-blue/20 text-lumen-blue text-xs font-semibold border border-lumen-blue/40">English</span>
+                    <span class="px-3 py-1 rounded-full bg-lumen-blue/20 text-lumen-blue text-xs font-semibold border border-lumen-blue/40">Spanish</span>
+                    <span class="px-3 py-1 rounded-full bg-white/5 text-neutral-400 text-xs cursor-pointer hover:bg-white/10" onclick="togglePrefLang('ASL')">+ American Sign Language</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-medium text-neutral-300 mb-2">Accessibility Needs</label>
+                  <div class="space-y-2">
+                    <label class="flex items-center gap-2 text-xs text-neutral-300">
+                      <input type="checkbox" id="pref-ramp" checked class="rounded border-white/20 text-lumen-blue">
+                      <span>Wheelchair Accessible Ramps & Lifts</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-xs text-neutral-300">
+                      <input type="checkbox" id="pref-stepfree" checked class="rounded border-white/20 text-lumen-blue">
+                      <span>Step-Free Entrances</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-xs text-neutral-300">
+                      <input type="checkbox" id="pref-quiet" class="rounded border-white/20 text-lumen-blue">
+                      <span>Sensory-Friendly Quiet Waiting Rooms</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-medium text-neutral-300 mb-2">Maximum Travel Radius (<span id="pref-dist-val">20</span> miles)</label>
+                  <input type="range" id="pref-dist-slider" min="5" max="50" value="20" oninput="document.getElementById('pref-dist-val').innerText = this.value" class="w-full accent-lumen-blue">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-medium text-neutral-300 mb-2">Insurance Carrier</label>
+                  <select id="pref-insurance" class="w-full px-4 py-2 rounded-xl bg-white/5 border border-lumen-gray/30 text-xs text-white">
+                    <option value="Medicare">Medicare</option>
+                    <option value="Medicaid">Medicaid</option>
+                    <option value="BlueShield">BlueShield</option>
+                    <option value="UnitedHealthcare">UnitedHealthcare</option>
+                    <option value="Self-Pay">Self-Pay / Sliding Scale</option>
+                  </select>
+                </div>
+
+                <button onclick="savePreferences()" class="w-full py-3 rounded-xl bg-lumen-blue hover:bg-blue-600 text-white font-semibold text-xs shadow-lg shadow-lumen-blue/30 transition-all">
+                  Save Preferences & Update Match Scores
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 5: REMINDERS -->
+          <div id="tab-content-reminders" class="tab-pane hidden">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-lg font-bold text-white">Follow-up Reminders & Next Steps</h3>
+                <p class="text-xs text-lumen-gray">Track pre-appointment fasting, paratransit transport, and referral renewals.</p>
+              </div>
+              <button onclick="promptAddReminder()" class="px-4 py-2 rounded-full bg-lumen-blue hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1.5">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Add Reminder</span>
+              </button>
+            </div>
+            <div id="reminders-list" class="space-y-3">
+              <div class="text-center py-12 text-lumen-gray">Loading reminders...</div>
+            </div>
+          </div>
+
+          <!-- TAB 6: SMART GUIDANCE & RECOMMENDATIONS -->
+          <div id="tab-content-guidance" class="tab-pane hidden">
+            <div class="mb-6">
+              <h3 class="text-lg font-bold text-white">Explainable Facility Match Recommendations</h3>
+              <p class="text-xs text-lumen-gray">Transparent breakdown of why each hospital or clinic is recommended, with clear unverified warnings.</p>
+            </div>
+            <div id="guidance-list" class="space-y-4">
+              <div class="text-center py-12 text-lumen-gray">Computing explainable recommendations...</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 5: CAPABILITIES & FEATURES (Using the Reference Image for Atmospheric Depth) -->
+    <section id="capabilities" class="py-24 px-6 sm:px-10 reference-bg-section">
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <p class="text-xs font-mono uppercase tracking-widest text-lumen-green mb-2">Designed for Equity & Precision</p>
+          <h2 class="text-3xl sm:text-5xl font-extrabold text-white mb-4">Lumen Capabilities</h2>
+          <p class="text-sm sm:text-base text-neutral-300 leading-relaxed font-light">
+            Every feature is engineered to remove administrative friction and prevent patients from slipping through the cracks.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="glass-card p-6">
+            <div class="w-10 h-10 rounded-full bg-lumen-blue/20 text-lumen-blue flex items-center justify-center mb-4">
+              <i data-lucide="search" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-2">Smart Facility Discovery</h4>
+            <p class="text-xs text-neutral-300 leading-relaxed">
+              Multi-parameter filtering by distance, carrier network, specialized departments, and wheelchair ramps.
+            </p>
+          </div>
+
+          <div class="glass-card p-6">
+            <div class="w-10 h-10 rounded-full bg-lumen-green/20 text-lumen-green flex items-center justify-center mb-4">
+              <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-2">Explainable Recommendations</h4>
+            <p class="text-xs text-neutral-300 leading-relaxed">
+              Understand exactly why a facility was ranked high or low, with transparent flags for missing or unverified info.
+            </p>
+          </div>
+
+          <div class="glass-card p-6">
+            <div class="w-10 h-10 rounded-full bg-amber-400/20 text-amber-400 flex items-center justify-center mb-4">
+              <i data-lucide="clock" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-2">Appointment Queue Navigation</h4>
+            <p class="text-xs text-neutral-300 leading-relaxed">
+              Explore available specialist slots, verify live doctor status, and navigate rescheduling or cancellations.
+            </p>
+          </div>
+
+          <div class="glass-card p-6">
+            <div class="w-10 h-10 rounded-full bg-purple-400/20 text-purple-400 flex items-center justify-center mb-4">
+              <i data-lucide="file-check" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-2">Document & Referral Tracking</h4>
+            <p class="text-xs text-neutral-300 leading-relaxed">
+              Checklists for photo ID, specialist referral letters, and lab results with clear action-required status tags.
+            </p>
+          </div>
+
+          <div class="glass-card p-6">
+            <div class="w-10 h-10 rounded-full bg-cyan-400/20 text-cyan-400 flex items-center justify-center mb-4">
+              <i data-lucide="bell" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-2">Follow-up Management</h4>
+            <p class="text-xs text-neutral-300 leading-relaxed">
+              Never miss fasting deadlines, medication refill checks, or paratransit bookings with automated reminders.
+            </p>
+          </div>
+
+          <div class="glass-card p-6">
+            <div class="w-10 h-10 rounded-full bg-pink-400/20 text-pink-400 flex items-center justify-center mb-4">
+              <i data-lucide="help-circle" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-2">Human Navigator Assistance</h4>
+            <p class="text-xs text-neutral-300 leading-relaxed">
+              One-click escalations when patient needs require human translation, special accessibility escorts, or advocacy.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6: FAQS -->
+    <section id="faqs" class="py-24 px-6 sm:px-10 max-w-5xl mx-auto">
+      <div class="text-center mb-16">
+        <p class="text-xs font-mono uppercase tracking-widest text-lumen-blue mb-2">Frequently Asked Questions</p>
+        <h2 class="text-3xl sm:text-5xl font-extrabold text-white mb-4">Answers & Clarifications</h2>
+      </div>
+
+      <div class="space-y-4" id="faq-accordion">
+        <!-- FAQ 1 -->
+        <div class="glass-card p-6 cursor-pointer" onclick="toggleFaq(1)">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white flex items-center gap-3">
+              <span class="text-xs font-mono text-lumen-blue">01</span>
+              <span>What is Lumen?</span>
+            </h3>
+            <i data-lucide="chevron-down" id="faq-icon-1" class="w-4 h-4 text-lumen-gray transition-transform"></i>
+          </div>
+          <p id="faq-ans-1" class="text-xs text-neutral-300 mt-3 hidden leading-relaxed">
+            Lumen is a healthcare-navigation platform that helps users discover healthcare facilities, explore appointment options, manage administrative requirements and keep track of follow-up steps.
+          </p>
+        </div>
+
+        <!-- FAQ 2 -->
+        <div class="glass-card p-6 cursor-pointer" onclick="toggleFaq(2)">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white flex items-center gap-3">
+              <span class="text-xs font-mono text-lumen-blue">02</span>
+              <span>How does Lumen recommend healthcare facilities?</span>
+            </h3>
+            <i data-lucide="chevron-down" id="faq-icon-2" class="w-4 h-4 text-lumen-gray transition-transform"></i>
+          </div>
+          <p id="faq-ans-2" class="text-xs text-neutral-300 mt-3 hidden leading-relaxed">
+            Lumen considers factors such as requested services, location, language preferences, accessibility requirements and appointment information to identify potentially suitable facilities. It also provides transparent explanations.
+          </p>
+        </div>
+
+        <!-- FAQ 3 -->
+        <div class="glass-card p-6 cursor-pointer" onclick="toggleFaq(3)">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white flex items-center gap-3">
+              <span class="text-xs font-mono text-lumen-blue">03</span>
+              <span>Can I book appointments through Lumen?</span>
+            </h3>
+            <i data-lucide="chevron-down" id="faq-icon-3" class="w-4 h-4 text-lumen-gray transition-transform"></i>
+          </div>
+          <p id="faq-ans-3" class="text-xs text-neutral-300 mt-3 hidden leading-relaxed">
+            Users can explore available appointment slots and submit booking requests through the platform. In this prototype, bookings are simulated demonstration records.
+          </p>
+        </div>
+
+        <!-- FAQ 4 -->
+        <div class="glass-card p-6 cursor-pointer" onclick="toggleFaq(4)">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white flex items-center gap-3">
+              <span class="text-xs font-mono text-lumen-blue">04</span>
+              <span>Does Lumen provide medical advice or diagnosis?</span>
+            </h3>
+            <i data-lucide="chevron-down" id="faq-icon-4" class="w-4 h-4 text-lumen-gray transition-transform"></i>
+          </div>
+          <p id="faq-ans-4" class="text-xs text-neutral-300 mt-3 hidden leading-relaxed">
+            No. Lumen is strictly an administrative healthcare-navigation platform. It does not diagnose conditions, recommend treatments, or make clinical decisions.
+          </p>
+        </div>
+
+        <!-- FAQ 5 -->
+        <div class="glass-card p-6 cursor-pointer" onclick="toggleFaq(5)">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white flex items-center gap-3">
+              <span class="text-xs font-mono text-lumen-blue">05</span>
+              <span>How does Lumen handle sudden API contract changes?</span>
+            </h3>
+            <i data-lucide="chevron-down" id="faq-icon-5" class="w-4 h-4 text-lumen-gray transition-transform"></i>
+          </div>
+          <p id="faq-ans-5" class="text-xs text-neutral-300 mt-3 hidden leading-relaxed">
+            Lumen isolates external data contracts behind an adapter normalization layer. When an external partner API mutates its payload (nested structures, renamed keys, changed units), the adapter validates, translates, and normalizes into canonical models without crashing the core app.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="py-12 px-6 border-t border-white/10 bg-[#121212] text-center text-xs text-lumen-gray">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2 font-mono font-bold text-white">
+          <span class="w-2 h-2 rounded-full bg-lumen-green"></span>
+          <span>LUMEN HEALTHCARE ACCESS</span>
+        </div>
+        <p>© 2026 Lumen Healthcare Navigation. Hackathon Prototype. Demonstration and synthetic records only.</p>
+        <div class="flex items-center gap-4 text-neutral-400">
+          <a href="#hero" class="hover:text-white">Back to Top ↑</a>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: BOOK APPOINTMENT POPUP                                 -->
+  <!-- ============================================================== -->
+  <div id="booking-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md p-6 border border-lumen-blue/40 relative">
+      <button onclick="closeBookingModal()" class="absolute top-4 right-4 text-neutral-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <h3 class="text-xl font-bold text-white mb-2">Simulate Appointment Booking</h3>
+      <p class="text-xs text-lumen-gray mb-4" id="modal-slot-desc">Slot details...</p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-neutral-300 mb-1">Patient Full Name</label>
+          <input type="text" id="bk-patient-name" value="Alex Morgan" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20 text-xs text-white focus:outline-none focus:border-lumen-blue">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-neutral-300 mb-1">Contact Email / Phone</label>
+          <input type="text" id="bk-patient-contact" value="alex.m@example.org" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20 text-xs text-white focus:outline-none focus:border-lumen-blue">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-neutral-300 mb-1">Notes / Accommodations Needed</label>
+          <textarea id="bk-notes" rows="2" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20 text-xs text-white focus:outline-none focus:border-lumen-blue" placeholder="e.g. Wheelchair ramp escort, Spanish interpreter..."></textarea>
+        </div>
+
+        <input type="hidden" id="bk-selected-slot-id">
+
+        <button onclick="submitBooking()" class="w-full py-2.5 rounded-lg bg-lumen-green hover:bg-green-600 text-white font-semibold text-xs shadow-lg shadow-lumen-green/30 transition-all flex items-center justify-center gap-2">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Confirm Simulated Booking</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- JAVASCRIPT: SCROLL ANIMATION + HEALTHCARE REST API CLIENT       -->
+  <!-- ============================================================== -->
+  <script>
+    // -------------------------------------------------------------
+    // 1. SMOOTH SCROLL ANIMATION ENGINE (300 FRAMES + LERP SMOOTHING)
+    // -------------------------------------------------------------
+    const TOTAL_FRAMES = 300;
+    const canvas = document.getElementById('animation-canvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const loader = document.getElementById('loader');
+    const loaderProgress = document.getElementById('loader-progress');
+
+    const images = new Array(TOTAL_FRAMES);
+    const loaded = new Array(TOTAL_FRAMES).fill(false);
+    let loadedCount = 0;
+
+    let targetProgress = 0;
+    let currentProgress = 0;
+    let lastRenderedIndex = -1;
+
+    function getFrameUrl(index) {
+      const padIndex = String(index + 1).padStart(3, '0');
+      return `frames/ezgif-frame-${padIndex}.jpg`;
+    }
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(window.innerWidth * dpr);
+      canvas.height = Math.round(window.innerHeight * dpr);
+      if (lastRenderedIndex >= 0) {
+        drawFrame(lastRenderedIndex);
+      }
+    }
+    window.addEventListener('resize', resizeCanvas, { passive: true });
+
+    function drawFrame(index) {
+      let frameToDraw = null;
+      if (loaded[index]) {
+        frameToDraw = images[index];
+      } else {
+        // Nearest fallback to avoid blank frames
+        for (let offset = 1; offset < TOTAL_FRAMES; offset++) {
+          if (index - offset >= 0 && loaded[index - offset]) {
+            frameToDraw = images[index - offset];
+            break;
+          }
+          if (index + offset < TOTAL_FRAMES && loaded[index + offset]) {
+            frameToDraw = images[index + offset];
+            break;
+          }
+        }
+      }
+
+      if (!frameToDraw) return;
+
+      const cw = canvas.width;
+      const ch = canvas.height;
+      const iw = frameToDraw.naturalWidth || 1920;
+      const ih = frameToDraw.naturalHeight || 1080;
+
+      // Cover scale mode
+      const scale = Math.max(cw / iw, ch / ih);
+      const nw = iw * scale;
+      const nh = ih * scale;
+      const nx = (cw - nw) / 2;
+      const ny = (ch - nh) / 2;
+
+      ctx.drawImage(frameToDraw, nx, ny, nw, nh);
+      lastRenderedIndex = index;
+    }
+
+    function updateScrollProgress() {
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll <= 0) {
+        targetProgress = 0;
+      } else {
+        targetProgress = Math.min(Math.max(window.scrollY / maxScroll, 0), 1);
+      }
+    }
+    window.addEventListener('scroll', updateScrollProgress, { passive: true });
+
+    function animate() {
+      // Fluid LERP damping for continuous, silky scroll response
+      const diff = targetProgress - currentProgress;
+      if (Math.abs(diff) > 0.00005) {
+        currentProgress += diff * 0.08;
+      } else {
+        currentProgress = targetProgress;
+      }
+
+      const frameIndex = Math.min(
+        TOTAL_FRAMES - 1,
+        Math.max(0, Math.round(currentProgress * (TOTAL_FRAMES - 1)))
+      );
+
+      if (frameIndex !== lastRenderedIndex) {
+        drawFrame(frameIndex);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function preloadFrames() {
+      resizeCanvas();
+      updateScrollProgress();
+      currentProgress = targetProgress;
+
+      // Prioritize frame 0 immediately
+      const firstImg = new Image();
+      firstImg.onload = () => {
+        loaded[0] = true;
+        loadedCount++;
+        images[0] = firstImg;
+        drawFrame(0);
+        loadRemainingFrames();
+      };
+      firstImg.src = getFrameUrl(0);
+      images[0] = firstImg;
+    }
+
+    function loadRemainingFrames() {
+      for (let i = 1; i < TOTAL_FRAMES; i++) {
+        const img = new Image();
+        img.onload = () => {
+          loaded[i] = true;
+          loadedCount++;
+          const percent = Math.round((loadedCount / TOTAL_FRAMES) * 100);
+          loaderProgress.style.width = `${percent}%`;
+
+          if (loadedCount === TOTAL_FRAMES) {
+            setTimeout(() => {
+              loader.classList.add('fade-out');
+            }, 300);
+          }
+        };
+        img.src = getFrameUrl(i);
+        images[i] = img;
+      }
+    }
+
+    preloadFrames();
+    requestAnimationFrame(animate);
+
+    // -------------------------------------------------------------
+    // 2. HEALTHCARE REST API CLIENT & INTERFACES
+    // -------------------------------------------------------------
+    let allFacilities = [];
+    let allSlots = [];
+
+    async function loadDashboardSummary() {
+      try {
+        const res = await fetch('/api/dashboard-summary');
+        const data = await res.json();
+        document.getElementById('stat-facilities').innerText = data.facilities_total;
+        document.getElementById('stat-slots').innerText = data.available_slots;
+        document.getElementById('stat-docs').innerText = data.pending_documents;
+        document.getElementById('stat-reminders').innerText = data.active_reminders;
+      } catch (e) {
+        console.error('Error loading summary:', e);
+      }
+    }
+
+    async function loadFacilities() {
+      try {
+        const res = await fetch('/api/facilities');
+        allFacilities = await res.json();
+        renderFacilities(allFacilities);
+      } catch (e) {
+        console.error('Error loading facilities:', e);
+      }
+    }
+
+    function renderFacilities(facilities) {
+      const container = document.getElementById('facilities-list');
+      if (!facilities.length) {
+        container.innerHTML = '<div class="col-span-3 text-center py-12 text-lumen-gray">No healthcare facilities match your criteria.</div>';
+        return;
+      }
+
+      container.innerHTML = facilities.map(f => `
+        <div class="glass-card p-6 flex flex-col justify-between border border-white/10 hover:border-lumen-blue/40">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs px-2.5 py-0.5 rounded-full bg-lumen-blue/20 text-lumen-blue font-semibold font-mono">${f.type}</span>
+              <span class="text-xs text-lumen-gray font-mono">${f.distance_miles} mi away</span>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-1">${f.name}</h4>
+            <p class="text-xs text-neutral-400 mb-4 flex items-center gap-1">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-lumen-gray"></i>
+              <span>${f.address}</span>
+            </p>
+
+            <div class="space-y-2 mb-4 text-xs">
+              <div class="flex items-center gap-1.5 text-neutral-300">
+                <i data-lucide="clock" class="w-3.5 h-3.5 text-lumen-green"></i>
+                <span>${f.queue_status}</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-neutral-300">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-lumen-blue"></i>
+                <span>In-Network: ${f.insurance_network.slice(0, 3).join(', ')}</span>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5 mb-6">
+              ${f.services.slice(0, 3).map(s => `<span class="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-neutral-300">${s}</span>`).join('')}
+              ${f.services.length > 3 ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-neutral-400">+${f.services.length - 3}</span>` : ''}
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-white/10 flex items-center justify-between">
+            <button onclick="switchTab('appointments'); filterSlotsByFacility('${f.id}')" class="px-3 py-1.5 rounded-full bg-lumen-blue hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1">
+              <span>View Slots</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </button>
+            <button onclick="switchTab('guidance')" class="text-xs text-lumen-gray hover:text-white">
+              Why Matched?
+            </button>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function filterFacilities() {
+      const q = document.getElementById('fac-search-input').value.toLowerCase();
+      const s = document.getElementById('fac-service-filter').value;
+      const filtered = allFacilities.filter(f => {
+        const matchesQ = f.name.toLowerCase().includes(q) || f.address.toLowerCase().includes(q);
+        const matchesS = s === 'All' || f.services.includes(s);
+        return matchesQ && matchesS;
+      });
+      renderFacilities(filtered);
+    }
+
+    async function loadSlots() {
+      try {
+        const res = await fetch('/api/slots');
+        allSlots = await res.json();
+        renderSlots(allSlots);
+      } catch (e) {
+        console.error('Error loading slots:', e);
+      }
+    }
+
+    function renderSlots(slots) {
+      const container = document.getElementById('slots-list');
+      if (!slots.length) {
+        container.innerHTML = '<div class="col-span-3 text-center py-12 text-lumen-gray">No appointment slots found.</div>';
+        return;
+      }
+
+      container.innerHTML = slots.map(s => {
+        const isAvail = s.status === 'Available';
+        const isUnavail = s.status === 'Unavailable';
+        const statusBadge = isAvail 
+          ? '<span class="text-[11px] px-2.5 py-0.5 rounded-full bg-lumen-green/20 text-lumen-green font-semibold">Available</span>'
+          : (isUnavail ? '<span class="text-[11px] px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 font-semibold">Unavailable</span>'
+                       : '<span class="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-semibold">Unknown / On-Call</span>');
+
+        return `
+          <div class="glass-card p-5 border border-white/10 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-mono text-neutral-400">${s.date} • ${s.time}</span>
+                ${statusBadge}
+              </div>
+              <h4 class="text-base font-bold text-white mb-1">${s.specialist_name}</h4>
+              <p class="text-xs text-lumen-blue mb-2 font-mono">${s.department}</p>
+              <p class="text-xs text-neutral-400 mb-4">${s.facility_name || 'Hospital Center'}</p>
+              ${s.status_note ? `<p class="text-[11px] text-neutral-400 italic mb-4">"${s.status_note}"</p>` : ''}
+            </div>
+
+            <div class="pt-3 border-t border-white/10">
+              ${isAvail ? `
+                <button onclick="openBookingModal('${s.id}', '${s.specialist_name}', '${s.date} ${s.time}', '${s.department}')" class="w-full py-2 rounded-lg bg-lumen-blue hover:bg-blue-600 text-white text-xs font-semibold shadow-md transition-all">
+                  Book This Slot
+                </button>
+              ` : `
+                <button disabled class="w-full py-2 rounded-lg bg-white/5 text-neutral-500 text-xs font-semibold cursor-not-allowed">
+                  ${isUnavail ? 'Reserved / Booked' : 'Triage Review Needed'}
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function filterSlotsByFacility(fid) {
+      const filtered = allSlots.filter(s => s.facility_id === fid);
+      renderSlots(filtered.length ? filtered : allSlots);
+    }
+
+    function showAvailableSlots() {
+      switchTab('appointments');
+      const filtered = allSlots.filter(s => s.status === 'Available');
+      renderSlots(filtered);
+      updateSlotFilterPills('avail');
+    }
+
+    function loadAllSlots() {
+      switchTab('appointments');
+      renderSlots(allSlots);
+      updateSlotFilterPills('all');
+    }
+
+    async function showMyBookings() {
+      switchTab('appointments');
+      updateSlotFilterPills('bookings');
+      const container = document.getElementById('slots-list');
+      container.innerHTML = '<div class="col-span-3 text-center py-12 text-lumen-gray">Loading your bookings...</div>';
+      try {
+        const res = await fetch('/api/bookings');
+        const bookings = await res.json();
+        renderBookings(bookings);
+      } catch (e) {
+        container.innerHTML = '<div class="col-span-3 text-center py-12 text-red-400">Failed to load bookings.</div>';
+      }
+    }
+
+    function updateSlotFilterPills(activeType) {
+      const allBtn = document.getElementById('slot-filter-all');
+      const availBtn = document.getElementById('slot-filter-avail');
+      const bkBtn = document.getElementById('slot-filter-bookings');
+      if (!allBtn || !availBtn || !bkBtn) return;
+
+      [allBtn, availBtn, bkBtn].forEach(b => {
+        b.className = 'px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-semibold transition-all cursor-pointer';
+      });
+
+      if (activeType === 'all') allBtn.className = 'px-3.5 py-1.5 rounded-full bg-lumen-blue text-white text-xs font-semibold transition-all shadow-md';
+      if (activeType === 'avail') availBtn.className = 'px-3.5 py-1.5 rounded-full bg-lumen-blue text-white text-xs font-semibold transition-all shadow-md';
+      if (activeType === 'bookings') bkBtn.className = 'px-3.5 py-1.5 rounded-full bg-lumen-green text-white text-xs font-semibold transition-all shadow-md';
+    }
+
+    function renderBookings(bookings) {
+      const container = document.getElementById('slots-list');
+      const activeBookings = (bookings || []).filter(b => b.status !== 'Cancelled');
+      if (!activeBookings.length) {
+        container.innerHTML = `
+          <div class="col-span-3 text-center py-12 glass-card border border-white/10">
+            <i data-lucide="calendar-x" class="w-8 h-8 text-lumen-gray mx-auto mb-2"></i>
+            <p class="text-sm text-white font-bold mb-1">No Active Bookings</p>
+            <p class="text-xs text-lumen-gray mb-4">You have not booked any appointments yet.</p>
+            <button onclick="showAvailableSlots()" class="px-4 py-1.5 rounded-full bg-lumen-blue text-white text-xs font-semibold">
+              Browse Available Slots
+            </button>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = activeBookings.map(b => `
+        <div class="glass-card p-5 border border-lumen-green/30 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-mono text-lumen-gray">Ref: ${b.id}</span>
+              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-lumen-green/20 text-lumen-green font-semibold">
+                ${b.status}
+              </span>
+            </div>
+            <h4 class="text-base font-bold text-white mb-1">${b.patient_name}</h4>
+            <p class="text-xs text-lumen-blue font-mono mb-1">${b.specialist_name || b.department} • ${b.department}</p>
+            <p class="text-xs text-neutral-300 mb-2">${b.facility_name || 'Hospital Center'}</p>
+            <p class="text-xs font-mono text-neutral-400 mb-3 flex items-center gap-1.5">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-lumen-blue"></i>
+              <span>${b.booking_date} at ${b.booking_time}</span>
+            </p>
+            ${b.notes ? `<p class="text-[11px] text-neutral-400 italic mb-4">"${b.notes}"</p>` : ''}
+          </div>
+
+          <div class="pt-3 border-t border-white/10 flex items-center justify-between">
+            <span class="text-[10px] text-lumen-gray font-mono">Simulated Record</span>
+            <button onclick="cancelMyBooking('${b.id}')" class="px-3 py-1 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/30 transition-all cursor-pointer">
+              Cancel Booking
+            </button>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    async function cancelMyBooking(id) {
+      if (!confirm('Are you sure you want to cancel this booking?')) return;
+      try {
+        const res = await fetch(`/api/bookings/${id}/cancel`, { method: 'PATCH' });
+        if (res.ok) {
+          showMyBookings();
+          loadSlots();
+          loadDashboardSummary();
+        }
+      } catch (e) {
+        alert('Failed to cancel booking');
+      }
+    }
+
+    async function loadDocuments() {
+      try {
+        const res = await fetch('/api/documents');
+        const docs = await res.json();
+        const container = document.getElementById('documents-list');
+        container.innerHTML = docs.map(d => {
+          let statusBadge = '<span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">Pending</span>';
+          if (d.status === 'Completed') statusBadge = '<span class="text-xs px-2.5 py-0.5 rounded-full bg-lumen-green/20 text-lumen-green font-semibold">Completed</span>';
+          if (d.status === 'Action Required') statusBadge = '<span class="text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 font-semibold">Action Required</span>';
+
+          return `
+            <div class="glass-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/10">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0 mt-0.5">
+                  <i data-lucide="file-text" class="w-4 h-4 text-lumen-blue"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-white">${d.title}</h4>
+                  <p class="text-xs text-neutral-300 mb-1">${d.description || 'Mandatory administrative checklist item'}</p>
+                  <span class="text-[10px] text-lumen-gray font-mono">Category: ${d.category} • Due: ${d.due_date || 'Prior to visit'}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 self-end sm:self-center">
+                ${statusBadge}
+                ${d.status !== 'Completed' ? `
+                  <button onclick="toggleDocComplete('${d.id}')" class="px-3 py-1 rounded-full bg-lumen-green/20 hover:bg-lumen-green text-lumen-green hover:text-white text-xs font-semibold transition-all">
+                    Mark Done
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Error loading documents:', e);
+      }
+    }
+
+    async function toggleDocComplete(id) {
+      await fetch(`/api/documents/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Completed' })
+      });
+      loadDocuments();
+      loadDashboardSummary();
+    }
+
+    async function promptAddDocument() {
+      const title = prompt('Enter Document Title (e.g., Insurance Pre-Auth Code):');
+      if (!title) return;
+      await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          category: 'Insurance & Intake',
+          description: 'Added via patient navigation interface',
+          status: 'Action Required',
+          due_date: new Date().toISOString().split('T')[0]
+        })
+      });
+      loadDocuments();
+      loadDashboardSummary();
+    }
+
+    async function loadReminders() {
+      try {
+        const res = await fetch('/api/reminders');
+        const reminders = await res.json();
+        const container = document.getElementById('reminders-list');
+        container.innerHTML = reminders.map(r => `
+          <div class="glass-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/10">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0 mt-0.5">
+                <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-white">${r.title}</h4>
+                <p class="text-xs text-neutral-400">${r.notes || 'Automated care continuity checkpoint'}</p>
+                <span class="text-[10px] text-lumen-gray font-mono">Priority: ${r.priority} • Due: ${r.due_date}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs px-2.5 py-0.5 rounded-full ${r.status === 'Completed' ? 'bg-lumen-green/20 text-lumen-green' : 'bg-amber-400/20 text-amber-300'} font-semibold">${r.status}</span>
+              ${r.status !== 'Completed' ? `
+                <button onclick="completeReminder('${r.id}')" class="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-xs text-white">Done</button>
+              ` : ''}
+            </div>
+          </div>
+        `).join('');
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Error loading reminders:', e);
+      }
+    }
+
+    async function completeReminder(id) {
+      await fetch(`/api/reminders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Completed' })
+      });
+      loadReminders();
+      loadDashboardSummary();
+    }
+
+    async function promptAddReminder() {
+      const title = prompt('Reminder title:');
+      if (!title) return;
+      await fetch('/api/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          due_date: new Date().toISOString().split('T')[0],
+          priority: 'High'
+        })
+      });
+      loadReminders();
+      loadDashboardSummary();
+    }
+
+    async function loadGuidance() {
+      try {
+        const res = await fetch('/api/recommendations');
+        const data = await res.json();
+        const container = document.getElementById('guidance-list');
+        container.innerHTML = data.recommendations.map(rec => {
+          const f = rec.facility;
+          let rankColor = 'text-lumen-green border-lumen-green/40 bg-lumen-green/10';
+          if (rec.match_score < 80) rankColor = 'text-lumen-blue border-lumen-blue/40 bg-lumen-blue/10';
+          if (rec.match_score < 50) rankColor = 'text-amber-400 border-amber-400/40 bg-amber-400/10';
+
+          return `
+            <div class="glass-card p-6 border border-white/10">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-4 border-b border-white/10">
+                <div>
+                  <h4 class="text-lg font-bold text-white">${f.name}</h4>
+                  <p class="text-xs text-neutral-400">${f.type} • ${f.address} (${f.distance_miles} mi)</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="text-right">
+                    <p class="text-xs text-lumen-gray font-mono">Match Score</p>
+                    <p class="text-2xl font-bold font-mono text-white">${rec.match_score}<span class="text-xs text-lumen-gray">/100</span></p>
+                  </div>
+                  <span class="px-3 py-1 rounded-full text-xs font-mono font-semibold border ${rankColor}">${rec.match_rank}</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <!-- Matched -->
+                <div class="p-3 rounded-lg bg-lumen-green/5 border border-lumen-green/20">
+                  <p class="font-bold text-lumen-green mb-2 flex items-center gap-1.5">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                    <span>Matched Criteria</span>
+                  </p>
+                  <ul class="space-y-1 text-neutral-300">
+                    ${rec.matched_criteria.map(c => `<li>• ${c}</li>`).join('')}
+                  </ul>
+                </div>
+
+                <!-- Unmatched -->
+                <div class="p-3 rounded-lg bg-amber-400/5 border border-amber-400/20">
+                  <p class="font-bold text-amber-400 mb-2 flex items-center gap-1.5">
+                    <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+                    <span>Unmatched / Gaps</span>
+                  </p>
+                  <ul class="space-y-1 text-neutral-300">
+                    ${rec.unmatched_criteria.length ? rec.unmatched_criteria.map(c => `<li>• ${c}</li>`).join('') : '<li class="text-neutral-500">None</li>'}
+                  </ul>
+                </div>
+
+                <!-- Unverified -->
+                <div class="p-3 rounded-lg bg-purple-400/5 border border-purple-400/20">
+                  <p class="font-bold text-purple-400 mb-2 flex items-center gap-1.5">
+                    <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                    <span>Unverified Data</span>
+                  </p>
+                  <ul class="space-y-1 text-neutral-300">
+                    ${rec.unknown_criteria.length ? rec.unknown_criteria.map(c => `<li>• ${c}</li>`).join('') : '<li class="text-neutral-500">All data verified</li>'}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Error loading guidance:', e);
+      }
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-lumen-blue', 'text-white');
+        btn.classList.add('bg-white/5', 'text-neutral-300');
+      });
+      document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.add('hidden'));
+
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-lumen-blue', 'text-white');
+        activeBtn.classList.remove('bg-white/5', 'text-neutral-300');
+      }
+      const activePane = document.getElementById(`tab-content-${tabId}`);
+      if (activePane) activePane.classList.remove('hidden');
+
+      if (tabId === 'facilities') loadFacilities();
+      if (tabId === 'appointments') {
+        loadSlots();
+        updateSlotFilterPills('all');
+      }
+      if (tabId === 'documents') loadDocuments();
+      if (tabId === 'reminders') loadReminders();
+      if (tabId === 'guidance') loadGuidance();
+    }
+
+    function openNavigatorModal(tabId) {
+      document.getElementById('navigator').scrollIntoView({ behavior: 'smooth' });
+      switchTab(tabId);
+    }
+
+    // Booking modal functions
+    function openBookingModal(slotId, specialist, dateTime, dept) {
+      document.getElementById('bk-selected-slot-id').value = slotId;
+      document.getElementById('modal-slot-desc').innerText = `${specialist} • ${dept} • ${dateTime}`;
+      document.getElementById('booking-modal').classList.remove('hidden');
+    }
+
+    function closeBookingModal() {
+      document.getElementById('booking-modal').classList.add('hidden');
+    }
+
+    async function submitBooking() {
+      const slot_id = document.getElementById('bk-selected-slot-id').value;
+      const patient_name = document.getElementById('bk-patient-name').value;
+      const patient_contact = document.getElementById('bk-patient-contact').value;
+      const notes = document.getElementById('bk-notes').value;
+
+      try {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slot_id, patient_name, patient_contact, notes })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Simulated Booking Recorded Successfully!');
+          closeBookingModal();
+          loadSlots();
+          loadDashboardSummary();
+        } else {
+          alert(data.error || 'Booking failed');
+        }
+      } catch (e) {
+        alert('Network error submitting booking');
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 3. HACKATHON CONSTRAINT 1 & 2 INTERACTIVE RUNNERS
+    // -------------------------------------------------------------
+    async function testConstraint1Unadapted() {
+      const key = document.getElementById('c1-contract-select').value;
+      const term = document.getElementById('c1-output-terminal');
+      term.innerHTML = '<span class="text-amber-400">Executing unadapted legacy integration against ' + key + '...</span>';
+
+      try {
+        const res = await fetch('/api/constraint1/test-unadapted', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contract_key: key })
+        });
+        const data = await res.json();
+        if (res.status === 422) {
+          term.innerHTML = `
+            <span class="text-red-400 font-bold">❌ [CRASH DETECTED - CONSTRAINT 1 RULE PROVEN]</span><br>
+            <span class="text-neutral-300">Rule: "${data.rule_proven}"</span><br>
+            <span class="text-amber-300">Exception: ${data.exception_type} (${data.error_detail})</span><br>
+            <span class="text-neutral-400">Detail: ${data.crash_explanation}</span><br>
+            <span class="text-red-300/80">Result: Unadapted code crashed when external vendor mutated payload.</span>
+          `;
+        } else {
+          term.innerHTML = `
+            <span class="text-lumen-green font-bold">✓ Status: ${data.status}</span><br>
+            <span class="text-neutral-300">${data.message}</span>
+          `;
+        }
+      } catch (e) {
+        term.innerHTML = `<span class="text-red-400">Test failed: ${e.message}</span>`;
+      }
+    }
+
+    async function testConstraint1Adapted() {
+      const key = document.getElementById('c1-contract-select').value;
+      const term = document.getElementById('c1-output-terminal');
+      term.innerHTML = '<span class="text-lumen-blue">Executing Resilient Adapter normalization pipeline against ' + key + '...</span>';
+
+      try {
+        const res = await fetch('/api/constraint1/test-adapted', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contract_key: key })
+        });
+        const data = await res.json();
+        const can = data.canonical_data;
+        term.innerHTML = `
+          <span class="text-lumen-green font-bold">✅ [PASS CONDITION MET]</span><br>
+          <span class="text-white font-semibold">Normalized Facility: ${can.name}</span><br>
+          <span class="text-neutral-300">Adapter Mode: ${data.contract_mode}</span><br>
+          <span class="text-neutral-300">Normalized Distance: ${can.distance_miles} miles (Auto-converted from vendor km)</span><br>
+          <span class="text-neutral-300">Normalized Wait Time: ${can.wait_minutes} mins (Parsed from string)</span><br>
+          <span class="text-neutral-300">Quarantined Quirks: [${data.quarantined_fields.join(', ')}]</span><br>
+          <span class="text-lumen-green font-semibold">Outcome: Zero app crashes. External contract successfully isolated behind boundary.</span>
+        `;
+      } catch (e) {
+        term.innerHTML = `<span class="text-red-400">Adapter error: ${e.message}</span>`;
+      }
+    }
+
+    async function triggerSurge(active) {
+      const endpoint = active ? '/api/constraint2/simulate-surge' : '/api/constraint2/reset';
+      try {
+        const res = await fetch(endpoint, { method: 'POST' });
+        const json = await res.json();
+        const state = json.state;
+        updateConstraint2UI(state);
+      } catch (e) {
+        console.error('Error triggering surge:', e);
+      }
+    }
+
+    async function loadConstraint2Status() {
+      try {
+        const res = await fetch('/api/constraint2/status');
+        const state = await res.json();
+        updateConstraint2UI(state);
+      } catch (e) {
+        console.error('Error loading C2:', e);
+      }
+    }
+
+    function updateConstraint2UI(state) {
+      const m = state.metrics;
+      document.getElementById('c2-demand-count').innerText = `${state.demand_count} patients`;
+      document.getElementById('c2-capacity-limit').innerText = `${m.capacity_limit} slots`;
+      document.getElementById('c2-exceeded-flag').innerText = m.capacity_exceeded ? 'EXCEEDED (FAIL)' : 'FALSE (CAP SAFE)';
+      document.getElementById('c2-capacity-bar').style.width = `${Math.min(100, m.capacity_utilization_percent)}%`;
+
+      const auditPreview = document.getElementById('c2-audit-preview');
+      const sampleAudit = state.audit_trail.slice(0, 4);
+      auditPreview.innerHTML = `
+        <div class="text-xs font-bold text-white mb-2 flex items-center justify-between">
+          <span>ALLOCATION AUDIT TRAIL (${m.allocated_count} Allocated / ${m.waitlisted_count} Waitlisted / ${m.diverted_count} Diverted)</span>
+          <span class="text-lumen-green font-mono">100% EXPLAINABLE</span>
+        </div>
+        <div class="space-y-2">
+          ${sampleAudit.map(a => `
+            <div class="p-2 rounded bg-white/5 border border-white/5">
+              <span class="font-bold text-white">${a.patient_name}</span> 
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono ${a.outcome === 'ALLOCATED' ? 'bg-lumen-green/20 text-lumen-green' : (a.outcome === 'WAITLISTED' ? 'bg-amber-400/20 text-amber-300' : 'bg-blue-400/20 text-blue-300')}">${a.outcome}</span><br>
+              <span class="text-neutral-400 text-[10px]">${a.explanation}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function toggleFaq(id) {
+      const ans = document.getElementById(`faq-ans-${id}`);
+      const icon = document.getElementById(`faq-icon-${id}`);
+      const isHidden = ans.classList.contains('hidden');
+      ans.classList.toggle('hidden');
+      if (isHidden) {
+        icon.classList.add('rotate-180');
+      } else {
+        icon.classList.remove('rotate-180');
+      }
+    }
+
+    // Initial data hydration
+    loadDashboardSummary();
+    loadFacilities();
+    loadSlots();
+  </script>
+</body>
+</html>
